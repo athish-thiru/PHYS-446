@@ -1,3 +1,4 @@
+#Run script from inside Cellular Automata folder or update paths
 import matplotlib.pyplot as plt
 import numpy as np
 import gzip
@@ -13,32 +14,48 @@ state[0:100, 0:50] = 0
 def swap(state):
     x1 = np.random.randint(0, 100)
     y1 = np.random.randint(0, 100)
-    x2 = np.random.randint(0, 100)
-    y2 = np.random.randint(0, 100)
+    ch = np.random.randint(0, 4)
 
-    state[x1][y1], state[x2][y2] = state[x2][y2], state[x1][y1]
+    if (ch == 0) and (x1 != 0): #Swap up
+        state[x1][y1], state[x1-1][y1] = state[x1-1][y1], state[x1][y1]
+        return True
+    if (ch == 1) and (x1 != 99): #Swap down
+        state[x1][y1], state[x1+1][y1] = state[x1+1][y1], state[x1][y1]
+        return True
+    if (ch == 2) and (y1 != 0): #Swap left
+        state[x1][y1], state[x1][y1-1] = state[x1][y1-1], state[x1][y1]
+        return True
+    if (ch == 3) and (y1 != 99): #Swap right
+        state[x1][y1], state[x1][y1+1] = state[x1][y1+1], state[x1][y1]
+        return True
+    return False
 
 #bits_array stores size of state
 bits_array = []
 
 for i in range(10001):
+    #Each sweep
+    j = 0
+    while(j < 10000):
+        if (swap(state)):
+            j += 1
+    
+    #updating state and saving size of state
+    data = gzip.compress(state.tobytes())
+    bits_array.append(sys.getsizeof(data))
+
     #snapshots
     if i%500 == 0:
         plt.imshow(state, cmap='gray')
         plt.title("Snapshot at sweep {}".format(i))
         plt.savefig("snapshots/sweep{}".format(i))
-    
-    #updating state and saving size of state
-    swap(state)
-    data = gzip.compress(state.tobytes())
-    bits_array.append(sys.getsizeof(data))
 
 #Final plot
-plt.plot(bits_array)
-plt.xlabel("Sweeps")
-plt.ylabel("Number of compressed bits")
-plt.title("Change in entropy for \n Lattice Gas Automata")
-plt.ylim(0, 3000)
-plt.savefig("EntropyPlot")
-
-plt.show()
+fig = plt.figure(figsize=(6, 6))
+ax = fig.add_subplot(1, 1, 1)
+ax.plot(bits_array)
+ax.set_xlabel("Sweeps")
+ax.set_ylabel("Number of compressed bits")
+ax.set_title("Change in entropy for \n Lattice Gas Automata")
+ax.set_ylim(0, 3000)
+fig.savefig("EntropyPlot")
