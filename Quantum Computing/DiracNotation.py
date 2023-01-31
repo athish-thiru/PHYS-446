@@ -10,11 +10,6 @@ def PrettyPrintBinary(myState):
     output = "("
     for currentState in myState:
         (probability, state) = currentState
-        # Converting complex amplitudes into real number
-        if probability < 0:
-            probability = -np.sqrt(probability*np.conj(probability))
-        else:
-            probability = np.sqrt(probability*np.conj(probability))
         #Outputing into string form
         output += " " + str(probability) + " |" + state + "> + "
     #Removing last + sign
@@ -31,12 +26,7 @@ def PrettyPrintInteger(myState):
     output = "("
     for currentState in myState:
         (probability, state) = currentState
-        # Converting complex amplitudes into real number
-        if probability < 0:
-            probability = -np.sqrt(probability*np.conj(probability))
-        else:
-            probability = np.sqrt(probability*np.conj(probability))
-        #Chaning binary to integer
+        #Changing binary to integer
         intstate = 0
         for i in range(len(state)):
             intstate += int(state[i])*(2**(len(state) - i - 1))
@@ -80,5 +70,5 @@ myState2 = [(np.sqrt(0.1)*1.j, '101'), (np.sqrt(0.5), '000') , (-np.sqrt(0.4), '
 # print(PrettyPrintInteger(myState))
 # print(PrettyPrintBinary(myState2))
 # print(PrettyPrintInteger(myState2))
-print(StateToVec(myState2))
-print(VecToState(StateToVec(myState2)))
+# print(StateToVec(myState2))
+# print(VecToState(StateToVec(myState2)))
