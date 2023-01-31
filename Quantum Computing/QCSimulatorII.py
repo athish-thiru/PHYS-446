@@ -1,5 +1,6 @@
 import DiracNotation as dn
 import numpy as np
+import matplotlib.pyplot as plt
 
 #Control-NOT Gate
 def CNOT(controlWire, notWire, inputState):
@@ -83,15 +84,31 @@ def ReadInput(fileName):
         myInput.append(line.split())
     return (numberOfWires,myInput)
 
+# Deals with parsing through state files
+def ReadState(fileName):
+    lines=open(fileName).readlines()
+    state = np.zeros(len(lines), dtype=complex)
+    for i in range(len(lines)):
+        complexNumber = lines[i].split()
+        state[i] = float(complexNumber[0]) + float(complexNumber[1])*(1j)
+    return state
+
 #Enter Input File
 numberOfWires, myInput = ReadInput("Input Files/example.circuit")
-circuitVec = np.zeros(np.power(2, numberOfWires), dtype=complex)
-circuitVec[0] = 1
-circuitState = dn.VecToState(circuitVec)
-#print("INPUT: ", myInput)
+circuitState = [((1+0j), '000')]
+print(myInput)
+
+#Input
+if myInput[0][0] == "INITSTATE":
+    if myInput[0][1] == "FILE":
+        circuitState = ReadState("Input Files/" + myInput[2])
+    elif myInput[0][1] == "BASIS":
+        basis = myInput[0][2][1:-1]
+        circuitState = [((1+0j), basis)]
+        
 
 #Gates
-for gate in myInput[1:]:
+for gate in myInput:
     if gate[0] == 'H':
         circuitState = H(int(gate[1]), circuitState)
     elif gate[0] == 'P':
@@ -99,7 +116,19 @@ for gate in myInput[1:]:
     elif gate[0] == 'CNOT':
         circuitState = CNOT(int(gate[1]), int(gate[2]), circuitState)
 
-print(circuitState)
-print(dn.PrettyPrintInteger(circuitState))
-
-myState=[(np.sqrt(0.1), '00'), (np.sqrt(0.4), '01') , (-np.sqrt(0.5), '11' )]
+#Measurement
+if myInput[-1][0] == 'MEASURE':
+    probList = []
+    basisList = []
+    for element in circuitState:
+        (prob, basis) = element
+        basisList.append(basis)
+        probList.append(prob*np.conj(prob))
+    measurements = np.random.choice(basisList, size=10000, p=probList)
+    #Plotting
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.hist(measurements, histtype='barstacked')
+    ax.set_xlabel("Output")
+    ax.set_ylabel("Count")
+    plt.show()
