@@ -61,3 +61,11 @@ def VecToState(myVec):
                 state = '0' + state
             myState.append((myVec[idx], state))
     return myState
+
+if __name__ == "__main__":
+    myState2 = [(np.sqrt(0.1)*1.j, '101'), (np.sqrt(0.5), '000') , (-np.sqrt(0.4), '010')]
+
+    print(PrettyPrintBinary(myState2))
+    print(PrettyPrintInteger(myState2))
+    print(StateToVec(myState2))
+    print(VecToState(StateToVec(myState2)))

@@ -93,42 +93,43 @@ def ReadState(fileName):
         state[i] = float(complexNumber[0]) + float(complexNumber[1])*(1j)
     return state
 
-#Enter Input File
-numberOfWires, myInput = ReadInput("Input Files/example.circuit")
-circuitState = [((1+0j), '000')]
-print(myInput)
+#Subsequent portion of code only runs when file is run as a script
+if __name__ == "__main__":
+    #Enter Input File
+    numberOfWires, myInput = ReadInput("Input Files/example.circuit")
+    circuitState = [((1+0j), '000')]
 
-#Input
-if myInput[0][0] == "INITSTATE":
-    if myInput[0][1] == "FILE":
-        circuitState = ReadState("Input Files/" + myInput[2])
-    elif myInput[0][1] == "BASIS":
-        basis = myInput[0][2][1:-1]
-        circuitState = [((1+0j), basis)]
-        
+    #Input
+    if myInput[0][0] == "INITSTATE":
+        if myInput[0][1] == "FILE":
+            circuitState = ReadState("Input Files/" + myInput[2])
+        elif myInput[0][1] == "BASIS":
+            basis = myInput[0][2][1:-1]
+            circuitState = [((1+0j), basis)]
+            
 
-#Gates
-for gate in myInput:
-    if gate[0] == 'H':
-        circuitState = H(int(gate[1]), circuitState)
-    elif gate[0] == 'P':
-        circuitState = Phase(int(gate[1]), float(gate[2]), circuitState)
-    elif gate[0] == 'CNOT':
-        circuitState = CNOT(int(gate[1]), int(gate[2]), circuitState)
+    #Gates
+    for gate in myInput:
+        if gate[0] == 'H':
+            circuitState = H(int(gate[1]), circuitState)
+        elif gate[0] == 'P':
+            circuitState = Phase(int(gate[1]), float(gate[2]), circuitState)
+        elif gate[0] == 'CNOT':
+            circuitState = CNOT(int(gate[1]), int(gate[2]), circuitState)
 
-#Measurement
-if myInput[-1][0] == 'MEASURE':
-    probList = []
-    basisList = []
-    for element in circuitState:
-        (prob, basis) = element
-        basisList.append(basis)
-        probList.append(prob*np.conj(prob))
-    measurements = np.random.choice(basisList, size=10000, p=probList)
-    #Plotting
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.hist(measurements, histtype='barstacked')
-    ax.set_xlabel("Output")
-    ax.set_ylabel("Count")
-    plt.show()
+    #Measurement
+    if myInput[-1][0] == 'MEASURE':
+        probList = []
+        basisList = []
+        for element in circuitState:
+            (prob, basis) = element
+            basisList.append(basis)
+            probList.append(prob*np.conj(prob))
+        measurements = np.random.choice(basisList, size=10000, p=probList)
+        #Plotting
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.hist(measurements, histtype='barstacked')
+        ax.set_xlabel("Output")
+        ax.set_ylabel("Count")
+        plt.show()
