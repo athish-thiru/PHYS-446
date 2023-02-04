@@ -85,24 +85,31 @@ def ReadInput(fileName):
     return (numberOfWires,myInput)
 
 # Deals with parsing through state files
-def ReadState(fileName):
+def ReadState(fileName, numberOfWires):
     lines=open(fileName).readlines()
-    state = np.zeros(len(lines), dtype=complex)
+    state = []
     for i in range(len(lines)):
         complexNumber = lines[i].split()
-        state[i] = float(complexNumber[0]) + float(complexNumber[1])*(1j)
+        prob = float(complexNumber[0]) + float(complexNumber[1])*(1j)
+        basis = str(bin(i))[2:]
+        while (len(basis) != numberOfWires):
+            basis = '0' + basis
+        state.append((prob, basis))
     return state
 
 #Subsequent portion of code only runs when file is run as a script
 if __name__ == "__main__":
     #Enter Input File
-    numberOfWires, myInput = ReadInput("Input Files/example.circuit")
-    circuitState = [((1+0j), '000')]
+    numberOfWires, myInput = ReadInput("Input Files/measure.circuit")
+    inputBasis = ""
+    for i in range(numberOfWires):
+        inputBasis += '0'
+    circuitState = [((1+0j), inputBasis)]
 
     #Input
     if myInput[0][0] == "INITSTATE":
         if myInput[0][1] == "FILE":
-            circuitState = ReadState("Input Files/" + myInput[2])
+            circuitState = ReadState("Input Files/" + myInput[0][2], numberOfWires)
         elif myInput[0][1] == "BASIS":
             basis = myInput[0][2][1:-1]
             circuitState = [((1+0j), basis)]
@@ -116,6 +123,7 @@ if __name__ == "__main__":
             circuitState = Phase(int(gate[1]), float(gate[2]), circuitState)
         elif gate[0] == 'CNOT':
             circuitState = CNOT(int(gate[1]), int(gate[2]), circuitState)
+    print(dn.PrettyPrintInteger(circuitState))
 
     #Measurement
     if myInput[-1][0] == 'MEASURE':
@@ -127,9 +135,14 @@ if __name__ == "__main__":
             probList.append(prob*np.conj(prob))
         measurements = np.random.choice(basisList, size=10000, p=probList)
         #Plotting
-        fig = plt.figure()
+        fig = plt.figure(figsize=(8, 6))
         ax = fig.add_subplot(111)
         ax.hist(measurements, histtype='barstacked')
         ax.set_xlabel("Output")
         ax.set_ylabel("Count")
+
+        for label in ax.get_xticklabels():
+            label.set_rotation("vertical")
+
+        fig.savefig("measure circuit result")
         plt.show()
