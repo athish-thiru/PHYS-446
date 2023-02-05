@@ -52,12 +52,13 @@ def StateToVec(myState):
     return myVec
 
 def VecToState(myVec):
+    size = np.log2(len(myVec))
     myState = []
     for idx in range(len(myVec)):
         if myVec[idx] != (0+0.j):
             state = str(bin(idx))[2:]
             #Adding zeros so all states have equal size
-            while (len(state) != 3): 
+            while (len(state) != size): 
                 state = '0' + state
             myState.append((myVec[idx], state))
     return myState
@@ -69,3 +70,4 @@ if __name__ == "__main__":
     print(PrettyPrintInteger(myState2))
     print(StateToVec(myState2))
     print(VecToState(StateToVec(myState2)))
+# Add code to avoid neglibible values
