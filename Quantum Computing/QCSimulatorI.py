@@ -89,7 +89,7 @@ def qcIb(circuitVec, myInput):
 
 if __name__ == "__main__":
     #Enter Input File
-    numberOfWires, myInput = qcII.ReadInput("Input Files/measure.circuit")
+    numberOfWires, myInput = qcII.ReadInput("Input Files/rand.circuit")
     circuitVec = np.zeros(2**numberOfWires)
     circuitVec[0] = 1
 
@@ -106,18 +106,8 @@ if __name__ == "__main__":
                 index += int(basis[i])*(2**(len(basis) - i - 1))
             circuitVec[index] = 1
     
-    circuitVec = qcIa(circuitVec, myInput)
-    #Gates
-    # for gate in myInput:
-    #     if gate[0] == 'H':
-    #         gateArray = HadamardArray(int(gate[1]), numberOfWires)
-    #         circuitVec = circuitVec @ gateArray
-    #     elif gate[0] == 'P':
-    #         gateArray = PhaseArray(int(gate[1]), float(gate[2]), numberOfWires)
-    #         circuitVec = circuitVec @ gateArray
-    #     elif gate[0] == 'CNOT':
-    #         gateArray = CNOTArray(int(gate[1]), int(gate[2]), numberOfWires)
-    #         circuitVec = circuitVec @ gateArray
+    circuitVec = qcIb(circuitVec, myInput)
+    circuitVec = circuitVec*np.conj(circuitVec)
     circuitState = dn.VecToState(circuitVec)
     print(dn.PrettyPrintInteger(circuitState))
 
@@ -128,7 +118,7 @@ if __name__ == "__main__":
         for element in circuitState:
             (prob, basis) = element
             basisList.append(basis)
-            probList.append(prob*np.conj(prob))
+            probList.append(prob)
         measurements = np.random.choice(basisList, size=10000, p=probList)
         #Plotting
         fig = plt.figure(figsize=(8, 6))

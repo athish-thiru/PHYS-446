@@ -123,16 +123,19 @@ if __name__ == "__main__":
             circuitState = Phase(int(gate[1]), float(gate[2]), circuitState)
         elif gate[0] == 'CNOT':
             circuitState = CNOT(int(gate[1]), int(gate[2]), circuitState)
-    print(dn.PrettyPrintInteger(circuitState))
+    circuitVec = dn.StateToVec(circuitState)
+    circuitProbVec = circuitVec * np.conj(circuitVec)
+    circuitProbState = dn.VecToState(circuitProbVec)
+    print(dn.PrettyPrintInteger(circuitProbState))
 
     #Measurement
     if myInput[-1][0] == 'MEASURE':
         probList = []
         basisList = []
-        for element in circuitState:
+        for element in circuitProbState:
             (prob, basis) = element
             basisList.append(basis)
-            probList.append(prob*np.conj(prob))
+            probList.append(prob)
         measurements = np.random.choice(basisList, size=10000, p=probList)
         #Plotting
         fig = plt.figure(figsize=(8, 6))
