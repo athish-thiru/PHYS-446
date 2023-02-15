@@ -15,7 +15,7 @@ def Energy(spins):
     energy /= 2
     return energy
 
-# Calculates energy difference 
+# Calculates energy difference for singlr spin 
 # spin_to_flip is a tuple of coordinates
 def deltaE(system, spin_to_flip):
     L1, L2 = system.shape
@@ -29,42 +29,52 @@ def deltaE(system, spin_to_flip):
     energy_diff = after_energy - before_energy
     return energy_diff
 
+#Calculate energy difference for mutiple spins
+def deltaE2(system, mask):
+    before_energy_array = (system*np.roll(system, 1, axis=0)) + (system*np.roll(system, -1, axis=0))
+    before_energy_array += (system*np.roll(system, 1, axis=1)) + (system*np.roll(system, -1, axis=1))
+    system[mask] = -system[mask]
+    after_energy_array = (system*np.roll(system, 1, axis=0)) + (system*np.roll(system, -1, axis=0))
+    after_energy_array += (system*np.roll(system, 1, axis=1)) + (system*np.roll(system, -1, axis=1))
+    system[mask] = -system[mask]
+    return after_energy_array - before_energy_array
+
 if __name__ == "__main__":
     L = 3
     system = np.random.choice([1, -1], size=(L, L))
     beta = 0.3
-
+    x, y = np.indices((L, L))
+    red = np.logical_and((x+y)%2 == 0, np.logical_and(x<L-1, y<L-1))
+    red[L-1][L-1] = True
+    blue = np.logical_and((x+y)%2 == 1, np.logical_and(x<L-1, y<L-1))
+    green = np.logical_and((x+y)%2 == 0, np.logical_or(x==L-1,y==L-1))
+    green[L-1,L-1] = False
+    yellow = np.logical_and((x+y)%2 == 1, np.logical_or(x==L-1,y==L-1))
     #Stabilising markov chain monte carlo
     for sweep in range(20):
-        for step in range(L*L):
-            x = np.random.choice(L)
-            y = np.random.choice(L)
-            #Markov Chain Rule
-            alpha = np.exp(-beta*deltaE(system, (x, y)))
-            if alpha > 1:
-                system[x][y] = -system[x][y]
-            else:
-                switch = np.random.choice([1, 0], p=[alpha, 1-alpha])
-                if switch == 1:
-                    system[x][y] = -system[x][y]
+        #Creating mask for spins which do not depend on each other
+        for mask in [red, blue, green, yellow]:
+            #Heat Bath rule
+            flip_prob = (1/(1 + (1/np.exp(-beta*deltaE2(system, mask)))))
+            rands = np.random.rand(*flip_prob.shape)
+            switch = rands < flip_prob
+            finalmask = np.logical_and(mask, switch)
+            system[finalmask] = np.negative(system[finalmask])
     
     #Snapshots
     configs = []
     for sweep in range(100000):
-        for step in range(L*L):
-            x = np.random.choice(L)
-            y = np.random.choice(L)
-            #Markov Chain Rule
-            alpha = np.exp(-beta*deltaE(system, (x, y)))
-            if alpha > 1:
-                system[x][y] = -system[x][y]
-            else:
-                switch = np.random.choice([1, 0], p=[alpha, 1-alpha])
-                if switch == 1:
-                    system[x][y] = -system[x][y]
+        for mask in [red, blue, green, yellow]:
+            #Heat Bath rule
+            flip_prob = (1/(1 + (1/np.exp(-beta*deltaE2(system, mask)))))
+            rands = np.random.rand(*flip_prob.shape)
+            switch = rands < flip_prob
+            switch = np.where(np.random.rand(*flip_prob.shape) < flip_prob, True, False)
+            finalmask = np.logical_and(mask, switch)
+            system[finalmask] = np.negative(system[finalmask])
+    
         #Converting system into binary number
-        system_flat = system.flatten()
-        system_flat = [0 if i == -1 else 1 for i in system_flat]
+        system_flat = np.where(system == -1, 0, 1).flatten()
         bin_num = 0
         for i in range(len(system_flat)):
             bin_num += system_flat[i]*(2**((L*L)-i-1))
@@ -83,7 +93,7 @@ if __name__ == "__main__":
         total_energy += config_energy
         theory_configs.append(config_energy)
     theory_configs = np.array(theory_configs)/total_energy
-    x_points = [x for x in range(2**(L*L))]
+    x_points = np.arange(2**(L*L))
     
     #Plotting
     fig, ax = plt.subplots(1, 1)
@@ -93,5 +103,5 @@ if __name__ == "__main__":
     ax.set_ylabel("Probability")
     ax.set_title("Simulating an Ising Model using\nMarkov Chain Monte Carlo")
     ax.legend(loc = 'upper right')
-    fig.savefig("Plots/Simulating Ising Model")
+    #fig.savefig("Plots/Simulating Ising Model")
     plt.show()
