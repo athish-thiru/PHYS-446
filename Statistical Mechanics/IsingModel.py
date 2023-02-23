@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 #Calculates energies of a system
-def Energy(spins):
-    x, y = spins.shape
+def Energy(system):
+    x, y = system.shape
     energy = 0
     for i in range(x):
         for j in range(y):
@@ -39,23 +39,28 @@ def deltaE2(system, mask):
     system[mask] = -system[mask]
     return after_energy_array - before_energy_array
 
+def create_masks(dim):
+    x, y = np.indices((dim, dim))
+    red = np.logical_and((x+y)%2 == 0, np.logical_and(x<dim-1, y<dim-1))
+    red[dim-1][dim-1] = True
+    blue = np.logical_and((x+y)%2 == 1, np.logical_and(x<dim-1, y<dim-1))
+    green = np.logical_and((x+y)%2 == 0, np.logical_or(x==dim-1,y==dim-1))
+    green[dim-1,dim-1] = False
+    yellow = np.logical_and((x+y)%2 == 1, np.logical_or(x==dim-1,y==dim-1))
+
+    return [red, blue, green, yellow]
+
 if __name__ == "__main__":
     L = 3
     system = np.random.choice([1, -1], size=(L, L))
     beta = 0.3
-    x, y = np.indices((L, L))
-    red = np.logical_and((x+y)%2 == 0, np.logical_and(x<L-1, y<L-1))
-    red[L-1][L-1] = True
-    blue = np.logical_and((x+y)%2 == 1, np.logical_and(x<L-1, y<L-1))
-    green = np.logical_and((x+y)%2 == 0, np.logical_or(x==L-1,y==L-1))
-    green[L-1,L-1] = False
-    yellow = np.logical_and((x+y)%2 == 1, np.logical_or(x==L-1,y==L-1))
+    masks = create_masks(L)
     #Stabilising markov chain monte carlo
     for sweep in range(20):
         #Creating mask for spins which do not depend on each other
-        for mask in [red, blue, green, yellow]:
+        for mask in masks:
             #Heat Bath rule
-            flip_prob = (1/(1 + (1/np.exp(-beta*deltaE2(system, mask)))))
+            flip_prob = (1/(1 + np.exp(-beta*deltaE2(system, mask))))
             rands = np.random.rand(*flip_prob.shape)
             switch = rands < flip_prob
             finalmask = np.logical_and(mask, switch)
@@ -64,9 +69,9 @@ if __name__ == "__main__":
     #Snapshots
     configs = []
     for sweep in range(100000):
-        for mask in [red, blue, green, yellow]:
+        for mask in masks:
             #Heat Bath rule
-            flip_prob = (1/(1 + (1/np.exp(-beta*deltaE2(system, mask)))))
+            flip_prob = (1/(1 + np.exp(-beta*deltaE2(system, mask))))
             rands = np.random.rand(*flip_prob.shape)
             switch = rands < flip_prob
             switch = np.where(np.random.rand(*flip_prob.shape) < flip_prob, True, False)
