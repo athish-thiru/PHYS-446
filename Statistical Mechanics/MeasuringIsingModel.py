@@ -9,9 +9,10 @@ plt.rcParams["text.usetex"] = True
 if __name__ == "__main__":
     L = 27
     system = np.random.choice([1, -1], size=(L, L))
-    betas = np.arange(0, 1.1, 0.1)
-    betas = np.append(betas, [100])
+    #betas = np.arange(0, 1.1, 0.1)
+    #betas = np.append(betas, [100])
     #beta = 100
+    betas = [0, 100]
     masks = im.create_masks(L)
 
     for beta in betas:
@@ -44,36 +45,59 @@ if __name__ == "__main__":
             #Energy
             energies.append(im.Energy(system))
         
-        mean1, var1, err1, cor1 = st.Stats(np.array(mags))
-        mean2, var2, err2, cor2 = st.Stats(np.array(energies))
+        magMean, magVar, magErr, magCor = st.Stats(np.array(mags))
+        energyMean, energyVar, energyErr, energyCor = st.Stats(np.array(energies))
 
-        hist, bins = np.histogram(mags, bins=100)
+        magHist, magBins = np.histogram(mags, bins=100)
 
+        # Theorectical calculation
+        theoryEnergies = []
+        theoryMags = []
+        if beta == 0:
+            for i in range(10000):
+                theorySystem = np.random.choice([1, -1], p =[0.5, 0.5], size=(L,L))
+                theoryEnergies.append(im.Energy(theorySystem))
+                theoryMags.append(np.mean(theorySystem)**2)
+        elif beta == 100:
+            for i in range(10000):
+                theorySystem = np.ones_like(system)
+                theoryEnergies.append(im.Energy(theorySystem))
+                theoryMags.append(np.mean(theorySystem)**2)
 
         #Plotting
         fig, ax = plt.subplots(1, 2, figsize=(10, 8))
         ax[0].hist(energies, density=True, bins=100, label="MCMC")
-        ax[0].axvline(mean2, ls="solid", color="black", label="Expectation Value")
-        ax[0].axvline(mean2 - err2, ls="dashed",  color="red", label="Error Range")
-        ax[0].axvline(mean2 + err2, ls="dashed",  color="red")
-        #ax.plot(x_points, theory_configs, "r.", label="Theoretical value")
+        ax[0].axvline(energyMean, ls="solid", color="red", label="Expectation Value")
+        ax[0].axvline(energyMean - energyErr, ls="dashed",  color="orange", label="Error Range")
+        ax[0].axvline(energyMean + energyErr, ls="dashed",  color="orange")
         ax[0].set_xlabel("Energies")
         ax[0].set_ylabel("Probability")
-        ax[0].set_title(r"$\langle E \rangle = {:.3f} \pm {:.3f}$".format(mean2, err2))
-        ax[0].legend(loc = 'upper right')
-        #fig.savefig("Plots/Simulating Ising Model")
-        ax[1].step(bins[:-1], hist/np.sum(hist), where="post", label="MCMC")
-        #ax[1].hist(mags, weights=hist/np.sum(hist), bins=100, label="MCMC")
-        ax[1].axvline(mean1, ls="solid", color="black", label="Expectation Value")
-        ax[1].axvline(mean1 - err1, ls="dashed",  color="red", label="Error Range")
-        ax[1].axvline(mean1 + err1, ls="dashed",  color="red")
+        ax[1].step(magBins[:-1], magHist/np.sum(magHist), where="post", label="MCMC")
+        ax[1].axvline(magMean, ls="solid", color="red", label="Expectation Value")
+        ax[1].axvline(magMean - magErr, ls="dashed",  color="orange", label="Error Range")
+        ax[1].axvline(magMean + magErr, ls="dashed",  color="orange")
         ax[1].set_xlabel("Magnetization")
         ax[1].set_ylabel("Probability")
-        ax[1].set_title(r"$\langle M^2 \rangle = {:.3f} \pm {:.3f}$".format(mean1, err1))
+        
+        if len(theoryEnergies) != 0:
+            tMagMean, tMagVar, tMagErr, tMagCor = st.Stats(np.array(theoryMags))
+            tEnergyMean, tEnergyVar, tEnergyErr, tEnergyCor = st.Stats(np.array(theoryEnergies))
+            tMagHist, tMagBins = np.histogram(theoryMags, bins=100)
+            tEnergyHist, tEnergyBins = np.histogram(theoryEnergies, bins=100)
+
+            ax[0].hist(theoryEnergies, density=True, bins=100, label="Theoretical", zorder=100, alpha=0.4, color="black")
+            ax[0].set_title("Measurement $\langle E \\rangle = {:.3f} \pm {:.3f}$ \n Theoretical $\langle E \\rangle = {:.3f} \pm {:.3f}$".format(energyMean, energyErr, tEnergyMean, tEnergyErr))
+            ax[1].step(tMagBins[:-1], tMagHist/np.sum(tMagHist), where="post", label="Theoretical", color="black", alpha=0.7)
+            ax[1].set_title("Measurement $\langle M^2 \\rangle = {:.3f} \pm {:.3f}$ \n Theoretical $\langle M^2 \\rangle = {:.3f} \pm {:.3f}$".format(magMean, magErr, tMagMean, tMagErr))
+        else:
+            ax[0].set_title(r"$\langle E \rangle = {:.3f} \pm {:.3f}$".format(energyMean, energyErr))
+            ax[1].set_title(r"$\langle M^2 \rangle = {:.3f} \pm {:.3f}$".format(magMean, magErr))
+
+        ax[0].legend(loc = 'upper right')
         ax[1].legend(loc = 'upper right')
-        #fig.savefig("Plots/Simulating Ising Model")
         fig.suptitle(r"Ising Model for $\beta = {:.1f}$".format(beta))
         fig.savefig("Plots/Ising Model for beta = {:.1f}.png".format(beta))
+            
 
         fig2, ax2 = plt.subplots(1, 1)
         ax2.matshow(system)
