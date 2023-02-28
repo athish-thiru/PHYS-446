@@ -50,6 +50,19 @@ def create_masks(dim):
 
     return [red, blue, green, yellow]
 
+# Goes through all the masks and flips the spins for the system
+# Essentially performs one sweep
+def sweep(system, beta, masks):
+    for mask in masks:
+            #Heat Bath rule
+            flip_prob = (1/(1 + np.exp(-beta*deltaE2(system, mask))))
+            rands = np.random.rand(*flip_prob.shape)
+            switch = rands < flip_prob
+            finalmask = np.logical_and(mask, switch)
+            system[finalmask] = np.negative(system[finalmask])
+    
+    return system
+
 if __name__ == "__main__":
     L = 3
     system = np.random.choice([1, -1], size=(L, L))
