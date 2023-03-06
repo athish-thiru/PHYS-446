@@ -10,9 +10,10 @@ plt.rcParams["text.usetex"] = True
 if __name__ == "__main__":
     L = 27
     system = np.random.choice([1, -1], size=(L, L))
-    betas = np.arange(.1, 1.1, 0.1)
+    #betas = np.arange(0, 1.1, 0.1)
     #betas = np.append(betas, [100])
     #betas = [0, 100]
+    betas = np.arange(0, 1.05, 0.05)
     masks = im.create_masks(L)
     mean_mags_array = []
     mean_mags_error_array = []
@@ -20,7 +21,7 @@ if __name__ == "__main__":
     mean_energies_error_array = []
 
     #Do betas[::-1] for genrating Cvs plot
-    for beta in betas[::-1]:
+    for beta in betas:
         #Stabilising markov chain monte carlo
         for sweep in range(20):
             #Creating mask for spins which do not depend on each other
@@ -115,21 +116,21 @@ if __name__ == "__main__":
         # fig2.savefig("Plots/Final Snapshot of Ising Model for beta = {:.1f}.png".format(beta))
         # plt.close(fig)
         # plt.close(fig2)
-    # fig3, ax3 = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))
-    # ax3.errorbar(betas, mean_mags_array, yerr=mean_mags_error_array, ecolor="red", barsabove=True, capsize=1.0)
-    # ax3.set_xlabel("$\\beta$")
-    # ax3.set_ylabel("$\langle M^2 \\rangle$")
-    # ax3.set_title("Change in Magnetization with $\\beta$")
-    # fig3.savefig("MvsBeta")
-    fig4, ax4 = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))
-    # temps needs to be in increasing order for interpolation
-    temps = 1/betas[::-1]
-    Cvs = sc.interpolate.UnivariateSpline(temps, mean_energies_array).derivative()
-    #ax4.errorbar(temps, mean_energies_array, yerr=mean_energies_error_array, ecolor="red", barsabove=True, capsize=1.0)
-    new_temps = np.arange(1, 10, 0.1)
-    ax4.errorbar(new_temps, Cvs(new_temps), ecolor="red", barsabove=True, capsize=1.0)
-    ax4.set_xlabel("Temperature")
-    ax4.set_ylabel("Specific Heat")
-    ax4.set_title("Change in Specific Heat with Temperature")
-    fig4.savefig("CVvsTemp")
+    fig3, ax3 = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))
+    ax3.errorbar(betas, mean_mags_array, yerr=mean_mags_error_array, ecolor="red", barsabove=True, capsize=1.0)
+    ax3.set_xlabel("$\\beta$")
+    ax3.set_ylabel("$\langle M^2 \\rangle$")
+    ax3.set_title("Change in Magnetization with $\\beta$")
+    fig3.savefig("MvsBeta")
+
+    # fig4, ax4 = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))
+    # # temps needs to be in increasing order for interpolation
+    # temps = 1/betas[::-1]
+    # Cvs = sc.interpolate.UnivariateSpline(temps, mean_energies_array).derivative()
+    # new_temps = np.arange(1, 10, 0.1)
+    # ax4.errorbar(new_temps, Cvs(new_temps), ecolor="red", barsabove=True, capsize=1.0)
+    # ax4.set_xlabel("Temperature")
+    # ax4.set_ylabel("Specific Heat")
+    # ax4.set_title("Change in Specific Heat with Temperature")
+    #fig4.savefig("CVvsTemp")
     plt.show()
