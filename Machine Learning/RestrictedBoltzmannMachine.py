@@ -50,6 +50,71 @@ class RestrictedBoltzmannMachine:
             self.updateHiddenLayer()
             self.updateVisibleLayer()
     
+    # Calculates the Kullback–Leibler divergence for the given data and visible spin distribution
+    def calculateObjective(self, dataDistribution, visibleDistribution):
+        O = dataDistribution*np.log(dataDistribution/visibleDistribution)
+        return np.sum(O)
+    
+    # Calculate the free energy with -1 and 1 states
+    def calculateFreeEnergy(self):
+        termOne = np.dot(self.getVisibleStates(), self.getVisibleBiases())
+        termTwo = np.log(np.exp(-self.getHiddenBiases() - self.getWeights().T@self.getVisibleStates()) + np.exp(self.getHiddenBiases() + self.getWeights().T@self.getVisibleStates()))
+        return -termOne - np.sum(termTwo)
+
+    # Calculate the free energy with -1 and 0 states
+    def calculateFreeEnergy2(self):
+        visibleStates = np.where(self.getVisibleStates() == -1, 0, 1)
+        termOne = np.dot(visibleStates, self.getVisibleBiases())
+        termTwo = np.log(1 + np.exp(self.getHiddenBiases() + self.getWeights().T@visibleStates))
+        return -termOne - np.sum(termTwo)
+    
+    # Calculates the gradient using KL divergence and updates the weights and biases for one epoch
+    def gradientDescent(self, sample, M, eta):
+        # Take batches of size M
+        # convert each configuration in M to a state and calculates dW, da, db
+        # After that update the gradients
+        # Do this for the entire sample and then you are done with one epoch
+        # Going through the samples
+        visibleSize = self.getVisibleSize()
+        iterations = len(sample)//M
+        for i in range(iterations):
+            # Setting the inital gradients to 0
+            dW, da, db = 0, 0, 0
+            # Going through a mini-batch
+            for j in range(M):
+                # Converting number into binary state
+                state = sample[(M*i)+j]
+                binRep = str(bin(state)[2:])
+                while (len(binRep) != visibleSize):
+                    binRep = "0" + binRep
+                # Creating initial state
+                initState = np.where(np.array([int(elem) for elem in binRep]) == 0, -1, 1)
+                # Set the initial state of 
+                self.setVisibleStates(initState)
+                # Update hidden and weights
+                self.updateHiddenLayer()
+                hiddenLayer = self.getHiddenStates()
+                dW -= np.outer(initState, hiddenLayer)
+                da -= initState
+                db -= hiddenLayer
+                self.gibbsSampling(10)
+                newVisibleLayer = self.getVisibleStates()
+                newHiddenLayer = self.getHiddenStates()
+                dW += np.outer(newVisibleLayer, newHiddenLayer)
+                da += newVisibleLayer
+                db += newHiddenLayer
+
+            # Call weights and biases
+            weights = self.getWeights()
+            visibleBiases = self.getVisibleBiases()
+            hiddenBiases = self.getHiddenBiases()
+            weights -= eta*dW/M
+            visibleBiases -= eta*da/M
+            hiddenBiases -= eta*db/M
+            self.setWeights(weights)
+            self.setVisibleBiases(visibleBiases)
+            self.setHiddenBiases(hiddenBiases)
+
     # Get Hidden States
     def getHiddenStates(self):
         return self.hiddenStates
@@ -65,6 +130,38 @@ class RestrictedBoltzmannMachine:
     # Sets Visible States
     def setVisibleStates(self, visibleStates):
         self.visibleStates = visibleStates
+    
+    # Get Weights
+    def getWeights(self):
+        return self.weights
+    
+    # Get the visible biases
+    def getVisibleBiases(self):
+        return self.visibleBiases
+    
+    # Get the hidden biases
+    def getHiddenBiases(self):
+        return self.hiddenBiases
+    
+        # Get Weights
+    def setWeights(self, weights):
+        self.weights = weights
+    
+    # Get the visible biases
+    def setVisibleBiases(self, visibleBiases):
+        self.visibleBiases = visibleBiases
+    
+    # Get the hidden biases
+    def setHiddenBiases(self, hiddenBiases):
+        self.hiddenBiases = hiddenBiases
+    
+    # Returns number of visible Neurons
+    def getVisibleSize(self):
+        return self.visibleSize
+    
+    # Returns number of hidden neurons
+    def getHiddenSize(self):
+        return self.hiddenSize
 
 # Plots the joint and marginal distribution of the possible hidden and visible states
 # visibleLayerNum is the size of the visible layer
@@ -264,10 +361,99 @@ def plotConditionalProbabilityDistribution(visibleLayerNum, hiddenLayerNum):
     ax[1].legend()
     fig.suptitle("Conditional Probability Distribution for \n Restricted Boltzmann Machines")
     fig.tight_layout()
-    fig.savefig("Plots/Conditional Probability Distribution for RBM")
+    #fig.savefig("Plots/Conditional Probability Distribution for RBM")
+    plt.show()
+
+# Training the RBM on a toy distribution
+def trainingRBM(visibleLayerNum, hiddenLayerNum):
+    # Creating toy distribution
+    probDist = np.random.ranf(2**(visibleLayerNum))
+    probDist = probDist/np.sum(probDist)
+    samples = np.random.choice(range(0, 2**(visibleLayerNum)), p = probDist, size=100000)
+
+    rbm = RestrictedBoltzmannMachine(visibleLayerNum, hiddenLayerNum)
+
+    print("Actual Probability Distribution: ", probDist)
+
+    # Free energy Lists
+    freeEnergyList, freeEnergyList2 = [], []
+    for i in range(10):
+        np.random.shuffle(samples)
+        rbm.gradientDescent(samples, 64, 0.1)
+        freeEnergyList.append(rbm.calculateFreeEnergy())
+        freeEnergyList2.append(rbm.calculateFreeEnergy2())
+
+        # # Calculating objective function
+        # actualVisibleProbs = []
+        # for j in range(2**(visibleLayerNum)):
+        #     vBinRep = str(bin(j))[2:]
+        #     while (len(vBinRep) != (visibleLayerNum)):
+        #         vBinRep = "0" + vBinRep
+            
+        #     vInitState = np.where(np.array([int(elem) for elem in vBinRep]) == 0, -1, 1)
+        #     rbm.setVisibleStates(vInitState)
+        #     probability = 0
+        #     for k in range(2**(hiddenLayerNum)):
+        #         hBinRep = str(bin(k))[2:]
+        #         while (len(hBinRep) != (hiddenLayerNum)):
+        #             hBinRep = "0" + hBinRep
+        #         hInitState = np.where(np.array([int(elem) for elem in hBinRep]) == 0, -1, 1)
+        #         rbm.setHiddenStates(hInitState)
+        #         energy = rbm.calculateEnergy()
+        #         probability += np.exp(-energy)
+        #     actualVisibleProbs.append(probability)
+        # actualVisibleProbs = actualVisibleProbs/np.sum(actualVisibleProbs)
+        # print("RBM distribution for epoch {}".format(i+1), actualVisibleProbs)
+        # print("Objective for epoch {}".format(i+1), rbm.calculateObjective(probDist, actualVisibleProbs))
+    print("Measurements using the first formula: ", freeEnergyList)
+    print("Measurement using the second formula: ", freeEnergyList2)
+    
+    # visibleBiases = rbm.getVisibleBiases()
+    # hiddenBiases = rbm.getHiddenBiases()
+    # weights = rbm.getWeights()
+    # print("Final Visible Biases:", visibleBiases)
+    # print("Final hidden biases: ", hiddenBiases)
+    # print("Final Weights: ", weights)
+
+    # Calculating Theoretical value for p(v)
+    actualVisibleProbs = []
+    for j in range(2**(visibleLayerNum)):
+        vBinRep = str(bin(j))[2:]
+        while (len(vBinRep) != (visibleLayerNum)):
+            vBinRep = "0" + vBinRep
+        
+        vInitState = np.where(np.array([int(elem) for elem in vBinRep]) == 0, -1, 1)
+        rbm.setVisibleStates(vInitState)
+        probability = 0
+        for k in range(2**(hiddenLayerNum)):
+            hBinRep = str(bin(k))[2:]
+            while (len(hBinRep) != (hiddenLayerNum)):
+                hBinRep = "0" + hBinRep
+            hInitState = np.where(np.array([int(elem) for elem in hBinRep]) == 0, -1, 1)
+            rbm.setHiddenStates(hInitState)
+            energy = rbm.calculateEnergy()
+            probability += np.exp(-energy)
+        actualVisibleProbs.append(probability)
+    actualVisibleProbs = actualVisibleProbs/np.sum(actualVisibleProbs)
+    print(actualVisibleProbs)
+
+    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
+    ax[0].plot(np.arange(2**visibleLayerNum), probDist, label="Sample Distribution")
+    ax[0].plot(np.arange(2**visibleLayerNum), actualVisibleProbs, label="RBM Predicted Distribution")
+    ax[0].set_xlabel("States")
+    ax[0].set_ylabel("Probabilty")
+    ax[0].set_title("RBM visible state dsitribution")
+    ax[0].legend()
+    ax[1].plot(np.arange(10), freeEnergyList)
+    ax[1].set_xlabel("Epoch")
+    ax[1].set_ylabel("Free Energy")
+    ax[1].set_title("Change in Free Energy")
+    fig.suptitle("Gradient Descent on a toy distribution")
+    fig.savefig("Plots/Gradient Descent on toy ditribution")
     plt.show()
 
 
 if __name__ == "__main__":
     #plotJointandMarginalProbabilityDistributions(5, 2)
-    plotConditionalProbabilityDistribution(5, 2)
+    #plotConditionalProbabilityDistribution(5, 2)
+    trainingRBM(3, 5)
